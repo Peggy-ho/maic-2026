@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MAIC 2026 決賽評分表</title>
+<style>
+:root {
+  --blue:#007AFF; --green:#34C759; --red:#FF3B30; --orange:#FF9500; --gray:#8E8E93;
+  --light:#F2F2F7; --border:#D1D1D6; --text:#1C1C1E;
+  --innov-bg:#EFF6FF; --prosp-bg:#F0FFF4; --qual-bg:#FFF8EC; --oper-bg:#FFF0F5;
+  --topbar-h:56px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif; background:var(--light); color:var(--text); font-size:14px; overflow-x:auto; }
+
+/* ── Setup ── */
+#setup { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.setup-card { background:white; border-radius:16px; padding:32px 28px; width:100%; max-width:460px; box-shadow:0 4px 20px rgba(0,0,0,.1); }
+.setup-card h1 { font-size:22px; font-weight:800; color:var(--blue); margin-bottom:4px; }
+.setup-card p { font-size:13px; color:var(--gray); margin-bottom:24px; }
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:12px; font-weight:600; color:var(--gray); margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px; }
+.field select { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:16px; background:white; outline:none; -webkit-appearance:none; transition:border-color .15s; }
+.field select:focus { border-color:var(--blue); }
+#startBtn { width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-size:17px; font-weight:700; cursor:pointer; margin-top:8px; transition:opacity .15s; }
+#startBtn:hover { opacity:.88; }
+#startBtn:disabled { opacity:.35; cursor:not-allowed; }
+#setupError { margin-top:12px; color:var(--red); font-size:13px; text-align:center; display:none; }
+
+/* ── Scoring ── */
+#scoring { display:none; padding-top:var(--topbar-h); }
+.topbar { position:fixed; top:0; left:0; right:0; height:var(--topbar-h); z-index:100; background:#1C1C1E; color:white; padding:0 16px; display:flex; align-items:center; gap:12px; flex-wrap:nowrap; }
+.topbar-info { flex:1; min-width:0; }
+.topbar-info .name { font-size:15px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.topbar-info .meta { font-size:12px; color:#AEAEB2; margin-top:1px; }
+.progress-wrap { display:flex; align-items:center; gap:8px; }
+.progress-label { font-size:12px; color:#AEAEB2; white-space:nowrap; }
+.progress-bar { width:120px; height:4px; background:#3A3A3C; border-radius:2px; }
+.progress-fill { height:100%; border-radius:2px; background:var(--green); transition:width .3s; }
+.progress-count { font-size:13px; font-weight:700; color:var(--green); white-space:nowrap; }
+.save-status { font-size:11px; color:#636366; white-space:nowrap; }
+
+/* ── Table ── */
+.table-outer { padding:0 16px 40px; }
+table { border-collapse:collapse; width:max-content; min-width:100%; background:white; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+thead { position:sticky; top:var(--topbar-h); z-index:50; }
+
+.th-group { font-size:11px; font-weight:800; padding:8px 10px 4px; text-align:center; text-transform:uppercase; letter-spacing:.3px; border-bottom:2px solid rgba(0,0,0,.06); }
+.th-group.innov { background:#DBEAFE; color:#1E40AF; }
+.th-group.prosp { background:#DCFCE7; color:#166534; }
+.th-group.qual  { background:#FEF3C7; color:#92400E; }
+.th-group.oper  { background:#FFE4E6; color:#9F1239; }
+.th-group.meta  { background:var(--light); color:var(--gray); }
+
+.th-sub { font-size:11px; font-weight:700; color:var(--gray); padding:4px 8px 8px; text-align:center; white-space:nowrap; }
+.th-sub.innov { background:var(--innov-bg); }
+.th-sub.prosp { background:var(--prosp-bg); }
+.th-sub.qual  { background:var(--qual-bg); }
+.th-sub.oper  { background:var(--oper-bg); }
+.th-sub.meta  { background:var(--light); }
+
+.col-no   { width:40px; }
+.col-name { width:140px; }
+.col-score{ width:52px; }
+.col-rank { width:54px; }
+.col-total{ width:80px; }
+
+td { padding:5px; border-bottom:1px solid var(--light); vertical-align:middle; text-align:center; }
+tr:last-child td { border-bottom:none; }
+tr.row-done { background:#FAFFFE; }
+
+.row-no { font-size:12px; color:var(--gray); font-weight:600; }
+.name-cell { font-size:13px; font-weight:600; text-align:left; padding:0 8px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-cell  { font-size:12px; color:var(--gray); text-align:left; padding:0 8px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.score-inp { width:44px; height:34px; padding:0 2px; border:1.5px solid var(--border); border-radius:7px; font-size:15px; font-weight:700; text-align:center; outline:none; background:white; transition:border-color .1s,background .1s; -moz-appearance:textfield; }
+.score-inp::-webkit-outer-spin-button,.score-inp::-webkit-inner-spin-button { -webkit-appearance:none; }
+.score-inp:focus { background:#F0F8FF; }
+.score-inp.innov { border-color:#BFDBFE; }
+.score-inp.innov:focus { border-color:var(--blue); }
+.score-inp.prosp { border-color:#BBF7D0; }
+.score-inp.prosp:focus { border-color:var(--green); }
+.score-inp.qual  { border-color:#FDE68A; }
+.score-inp.qual:focus  { border-color:var(--orange); }
+.score-inp.oper  { border-color:#FECDD3; }
+.score-inp.oper:focus  { border-color:var(--red); }
+
+.rank-cell  { font-size:15px; font-weight:800; color:var(--blue); }
+.total-cell { font-size:15px; font-weight:800; }
+
+.comment-btn { padding:4px 10px; border:1.5px solid var(--border); border-radius:6px; background:white; font-size:12px; font-weight:600; color:var(--gray); cursor:pointer; white-space:nowrap; transition:all .15s; }
+.comment-btn:hover { border-color:var(--blue); color:var(--blue); }
+.comment-btn.has-comment { border-color:var(--blue); color:var(--blue); background:#EFF6FF; }
+
+.comment-row { display:none; }
+.comment-row td { padding:0 12px 10px; background:#F8FAFF; border-bottom:1px solid var(--light); }
+.comment-row textarea { width:100%; min-height:72px; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; resize:vertical; outline:none; background:white; transition:border-color .15s; }
+.comment-row textarea:focus { border-color:var(--blue); }
+
+/* ── Submit Modal ── */
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
+.modal-bg.show { display:flex; }
+.modal { background:white; border-radius:16px; padding:28px 24px; max-width:400px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,.2); }
+.modal h2 { font-size:18px; font-weight:800; margin-bottom:8px; }
+.modal p { font-size:14px; color:var(--gray); margin-bottom:20px; line-height:1.5; }
+.modal-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:20px; }
+.ms-item { background:var(--light); border-radius:10px; padding:12px; text-align:center; }
+.ms-val { font-size:22px; font-weight:800; }
+.ms-lbl { font-size:11px; color:var(--gray); margin-top:2px; }
+.modal-actions { display:flex; gap:10px; }
+.modal-actions button { flex:1; padding:12px; border-radius:10px; font-size:15px; font-weight:700; border:none; cursor:pointer; }
+.btn-cancel  { background:var(--light); color:var(--text); }
+.btn-confirm { background:var(--green); color:white; }
+.success-overlay { display:none; position:fixed; inset:0; background:white; z-index:300; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.success-overlay.show { display:flex; }
+.success-icon { font-size:72px; }
+.success-title { font-size:26px; font-weight:800; color:var(--green); }
+.success-sub { font-size:15px; color:var(--gray); }
+
+/* ── Loading ── */
+.loading { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; color:var(--gray); gap:12px; }
+.spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Setup -->
+<div id="setup">
+  <div class="setup-card">
+    <h1>MAIC 2026</h1>
+    <p>台灣決賽 — 評分系統</p>
+    <div class="field">
+      <label>評審姓名</label>
+      <select id="evalSelect">
+        <option value="">連線中…</option>
+      </select>
+    </div>
+    <button id="startBtn" disabled onclick="startScoring()">開始評分 →</button>
+    <div id="setupError"></div>
+  </div>
+</div>
+
+<!-- Scoring -->
+<div id="scoring">
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="name" id="topName">—</div>
+      <div class="meta" id="topMeta">—</div>
+    </div>
+    <div class="progress-wrap">
+      <span class="progress-label">進度</span>
+      <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+      <span class="progress-count" id="progCount">0 / 0</span>
+    </div>
+    <span class="save-status" id="saveStatus">已自動存檔</span>
+    <button onclick="refreshOrder()" style="padding:6px 12px;border:1px solid #3A3A3C;border-radius:6px;background:transparent;color:#AEAEB2;font-size:12px;cursor:pointer;white-space:nowrap">重新整理順序</button>
+    <button onclick="showSubmitModal()" style="padding:8px 18px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">送出評分</button>
+  </div>
+
+  <!-- Submit Modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h2>確認送出評分</h2>
+      <p id="modalDesc">—</p>
+      <div class="modal-stats">
+        <div class="ms-item"><div class="ms-val" id="msDone" style="color:var(--green)">0</div><div class="ms-lbl">已填完</div></div>
+        <div class="ms-item"><div class="ms-val" id="msSkip" style="color:var(--orange)">0</div><div class="ms-lbl">未填（略過）</div></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">取消</button>
+        <button class="btn-confirm" id="confirmBtn" onclick="doSubmit()">確認送出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-icon">✅</div>
+    <div class="success-title">評分已送出</div>
+    <div class="success-sub" id="successSub">—</div>
+  </div>
+
+  <div class="table-outer" id="tableOuter">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>載入隊伍清單…</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDNkqd4BFKzpDd-uL8F_ABKIclWXmhSszw",
+  authDomain: "maic-2026.firebaseapp.com",
+  projectId: "maic-2026",
+  storageBucket: "maic-2026.firebasestorage.app",
+  messagingSenderId: "1081506283826",
+  appId: "1:1081506283826:web:e633ef06fc4dc21a2dd72b"
+});
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+const FIELDS = ['design_concept','interface_design','interaction_design','feasibility',
+                'user_need','market_reception','completeness','quality_score',
+                'functionality','smoothness','reliability'];
+
+let evaluator = '', teams = [], saved = {}, saveTimers = {};
+
+auth.signInAnonymously().then(loadEvaluators);
+
+async function loadEvaluators() {
+  const snap = await db.collection('evaluators').orderBy('name').get();
+  const sel = document.getElementById('evalSelect');
+  sel.innerHTML = '<option value="">— 請選擇評審 —</option>';
+  snap.forEach(d => {
+    const o = document.createElement('option');
+    o.value = o.textContent = d.data().name;
+    sel.appendChild(o);
+  });
+  sel.disabled = false;
+  sel.onchange = () => { document.getElementById('startBtn').disabled = !sel.value; };
+}
+
+async function startScoring() {
+  evaluator = document.getElementById('evalSelect').value;
+  if (!evaluator) return;
+
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.textContent = '載入中…';
+
+  const [tSnap, sSnap] = await Promise.all([
+    db.collection('teams').orderBy('teamId').get(),
+    db.collection('scores').where('evaluatorName','==',evaluator).get()
+  ]);
+  teams = tSnap.docs.map(d => d.data());
+  teams.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+  sSnap.forEach(d => { saved[d.data().teamId] = d.data(); });
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('scoring').style.display = 'block';
+  document.getElementById('topName').textContent = evaluator;
+  document.getElementById('topMeta').textContent = `決賽 · ${teams.length} 件作品`;
+  buildTable();
+  window.scrollTo(0, 0);
+}
+
+// Use double-underscore separator to avoid collision with field names that contain underscores
+function inp(field, tid) {
+  return document.getElementById(`${field}__${tid}`);
+}
+
+function getF(field, tid) {
+  const v = parseFloat(inp(field, tid)?.value);
+  return isNaN(v) ? null : Math.min(10, Math.max(1, v));
+}
+
+function calcRow(tid) {
+  const dc  = getF('design_concept', tid);
+  const id_ = getF('interface_design', tid);
+  const ixd = getF('interaction_design', tid);
+  const fe  = getF('feasibility', tid);
+  const un  = getF('user_need', tid);
+  const mr  = getF('market_reception', tid);
+  const co  = getF('completeness', tid);
+  const qs  = getF('quality_score', tid);
+  const fn  = getF('functionality', tid);
+  const sm  = getF('smoothness', tid);
+  const rl  = getF('reliability', tid);
+
+  if ([dc,id_,ixd,fe,un,mr,co,qs,fn,sm,rl].some(v => v === null)) return null;
+
+  const ia = (dc + id_ + ixd + fe) / 4;
+  const pa = (un + mr) / 2;
+  const qa = (co + qs) / 2;
+  const oa = (fn + sm + rl) / 3;
+  return {
+    innov_score: +(ia * 4).toFixed(2),
+    prosp_score: +(pa * 2.5).toFixed(2),
+    qual_score:  +(qa).toFixed(2),
+    oper_score:  +(oa * 2.5).toFixed(2),
+    total:       +(ia*4 + pa*2.5 + qa + oa*2.5).toFixed(2),
+    is_pass:     (ia>=6 && pa>=6 && qa>=6 && oa>=6) ? 1 : 0
+  };
+}
+
+function buildTable() {
+  const outer = document.getElementById('tableOuter');
+
+  const header = `
+  <thead>
+    <tr>
+      <th class="th-group meta col-no" rowspan="2">展演<br>順序</th>
+      <th class="th-group meta col-name" rowspan="2">隊伍名稱</th>
+      <th class="th-group meta col-name" rowspan="2">作品名稱</th>
+      <th class="th-group innov" colspan="4">作品創新與特色（40%）</th>
+      <th class="th-group prosp" colspan="2">前景評估（25%）</th>
+      <th class="th-group qual"  colspan="2">資料完整性和品質（10%）</th>
+      <th class="th-group oper"  colspan="3">作品基本運作（25%）</th>
+      <th class="th-group meta col-rank" rowspan="2">排名</th>
+      <th class="th-group meta col-total" rowspan="2">總分</th>
+      <th class="th-group meta" rowspan="2" style="width:52px">評語</th>
+    </tr>
+    <tr>
+      <th class="th-sub innov">設計理念</th>
+      <th class="th-sub innov">介面設計</th>
+      <th class="th-sub innov">交互設計</th>
+      <th class="th-sub innov">可行性</th>
+      <th class="th-sub prosp">使用者需求</th>
+      <th class="th-sub prosp">市場歡迎</th>
+      <th class="th-sub qual">資料齊全</th>
+      <th class="th-sub qual">資料品質</th>
+      <th class="th-sub oper">功能性</th>
+      <th class="th-sub oper">流暢性</th>
+      <th class="th-sub oper">可靠性</th>
+    </tr>
+  </thead>`;
+
+  const mkInp = (f, cls, tid, s) =>
+    `<input class="score-inp ${cls}" type="number" id="${f}__${tid}" data-tid="${tid}"
+      min="1" max="10" placeholder="—" value="${s[f] != null ? s[f] : ''}"
+      oninput="onScoreInput('${tid}')">`;
+
+  const rows = teams.map((t, i) => {
+    const tid = t.teamId;
+    const s = saved[tid] || {};
+    return `<tr id="tr__${tid}" data-tid="${tid}">
+      <td class="row-no">${t.order ?? '—'}</td>
+      <td class="name-cell" title="${t.teamName||''}">${t.teamName||'—'}</td>
+      <td class="app-cell"  title="${t.appName||''}">${t.appName||'—'}</td>
+      <td>${mkInp('design_concept',    'innov', tid, s)}</td>
+      <td>${mkInp('interface_design',  'innov', tid, s)}</td>
+      <td>${mkInp('interaction_design','innov', tid, s)}</td>
+      <td>${mkInp('feasibility',       'innov', tid, s)}</td>
+      <td>${mkInp('user_need',         'prosp', tid, s)}</td>
+      <td>${mkInp('market_reception',  'prosp', tid, s)}</td>
+      <td>${mkInp('completeness',      'qual',  tid, s)}</td>
+      <td>${mkInp('quality_score',     'qual',  tid, s)}</td>
+      <td>${mkInp('functionality',     'oper',  tid, s)}</td>
+      <td>${mkInp('smoothness',        'oper',  tid, s)}</td>
+      <td>${mkInp('reliability',       'oper',  tid, s)}</td>
+      <td class="rank-cell"  id="rk__${tid}">—</td>
+      <td class="total-cell" id="tot__${tid}">—</td>
+      <td><button class="comment-btn${s.comment ? ' has-comment' : ''}" id="cbtn__${tid}" onclick="toggleComment('${tid}')">評語</button></td>
+    </tr>
+    <tr class="comment-row" id="crow__${tid}">
+      <td colspan="17">
+        <textarea id="comment__${tid}" placeholder="輸入評語…" oninput="onCommentInput('${tid}')">${s.comment || ''}</textarea>
+      </td>
+    </tr>`;
+  }).join('');
+
+  outer.innerHTML = `<table>${header}<tbody>${rows}</tbody></table>`;
+
+  // Clamp on blur
+  outer.querySelectorAll('.score-inp').forEach(el => {
+    el.addEventListener('blur', function() {
+      const v = parseFloat(this.value);
+      if (!isNaN(v)) this.value = Math.min(10, Math.max(1, v));
+      onScoreInput(this.dataset.tid, false);
+    });
+  });
+
+  // Restore state for rows that already have saved scores
+  teams.forEach(t => {
+    if (saved[t.teamId]) onScoreInput(t.teamId, false);
+  });
+}
+
+function onScoreInput(tid, doSave = true) {
+  const res = calcRow(tid);
+  const totCell = document.getElementById(`tot__${tid}`);
+  const row     = document.getElementById(`tr__${tid}`);
+
+  if (res) {
+    totCell.textContent = res.total.toFixed(2);
+    row.classList.add('row-done');
+  } else {
+    totCell.textContent = '—';
+    row.classList.remove('row-done');
+  }
+
+  updateProgress();
+  updateRanks();
+
+  if (doSave) {
+    clearTimeout(saveTimers[tid]);
+    saveTimers[tid] = setTimeout(() => saveRow(tid), 1000);
+  }
+}
+
+function countDone() {
+  return teams.filter(t => calcRow(t.teamId) !== null).length;
+}
+
+function updateProgress() {
+  const done  = countDone();
+  const total = teams.length;
+  const pct   = total ? (done / total * 100).toFixed(0) : 0;
+  document.getElementById('progFill').style.width  = pct + '%';
+  document.getElementById('progCount').textContent = `${done} / ${total}`;
+}
+
+function updateRanks() {
+  const scored = teams
+    .map(t => ({ tid: t.teamId, res: calcRow(t.teamId) }))
+    .filter(x => x.res !== null)
+    .sort((a, b) => b.res.total - a.res.total);
+
+  teams.forEach(t => {
+    const cell = document.getElementById(`rk__${t.teamId}`);
+    if (cell) cell.textContent = '—';
+  });
+
+  let rank = 1;
+  for (let i = 0; i < scored.length; i++) {
+    if (i > 0 && scored[i].res.total < scored[i-1].res.total) rank = i + 1;
+    const cell = document.getElementById(`rk__${scored[i].tid}`);
+    if (cell) cell.textContent = rank;
+  }
+}
+
+function showSubmitModal() {
+  const done = countDone();
+  const skip = teams.length - done;
+  document.getElementById('msDone').textContent = done;
+  document.getElementById('msSkip').textContent = skip;
+  document.getElementById('modalDesc').textContent = skip > 0
+    ? `共 ${done} 件已評完，${skip} 件未填（將略過）。`
+    : `全部 ${done} 件已評完。`;
+  document.getElementById('confirmBtn').disabled = done === 0;
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('show');
+}
+
+async function doSubmit() {
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true; btn.textContent = '送出中…';
+  try {
+    const batch = db.batch();
+    teams.forEach(t => {
+      const res = calcRow(t.teamId);
+      if (!res) return;
+      const docId = `${evaluator}_${t.teamId}`;
+      batch.set(db.collection('scores').doc(docId),
+        { evaluatorName: evaluator, teamId: t.teamId, submitted: true,
+          submittedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        { merge: true });
+    });
+    await batch.commit();
+    closeModal();
+    const done = countDone();
+    document.getElementById('successSub').textContent =
+      `${evaluator} 已送出 ${done} 件評分`;
+    document.getElementById('successOverlay').classList.add('show');
+  } catch(e) {
+    alert('送出失敗，請確認網路連線');
+    btn.disabled = false; btn.textContent = '確認送出';
+  }
+}
+
+async function refreshOrder() {
+  const snap = await db.collection('teams').get();
+  const orderMap = {};
+  snap.forEach(d => { orderMap[d.data().teamId] = d.data().order; });
+  teams.forEach(t => { t.order = orderMap[t.teamId]; });
+  teams.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+  // Re-render just the order cells and re-insert rows in new order
+  const tbody = document.querySelector('#tableOuter tbody');
+  teams.forEach(t => {
+    const row = document.getElementById(`tr__${t.teamId}`);
+    const cell = row?.querySelector('.row-no');
+    if (cell) cell.textContent = t.order ?? '—';
+    if (row) tbody.appendChild(row);
+    const crow = document.getElementById(`crow__${t.teamId}`);
+    if (crow) tbody.appendChild(crow);
+  });
+  document.getElementById('saveStatus').textContent = '順序已更新';
+}
+
+function toggleComment(tid) {
+  const row = document.getElementById(`crow__${tid}`);
+  const isOpen = row.style.display === 'table-row';
+  row.style.display = isOpen ? 'none' : 'table-row';
+  if (!isOpen) document.getElementById(`comment__${tid}`)?.focus();
+}
+
+let commentTimers = {};
+
+function onCommentInput(tid) {
+  clearTimeout(commentTimers[tid]);
+  commentTimers[tid] = setTimeout(() => saveComment(tid), 1000);
+}
+
+function updateCommentBtn(tid) {
+  const btn = document.getElementById(`cbtn__${tid}`);
+  const hasContent = !!document.getElementById(`comment__${tid}`)?.value.trim();
+  if (btn) btn.className = 'comment-btn' + (hasContent ? ' has-comment' : '');
+}
+
+async function saveComment(tid) {
+  const comment = document.getElementById(`comment__${tid}`)?.value || '';
+  const docId = `${evaluator}_${tid}`;
+  document.getElementById('saveStatus').textContent = '儲存中…';
+  try {
+    await db.collection('scores').doc(docId).set(
+      { evaluatorName: evaluator, teamId: tid, comment,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    saved[tid] = { ...(saved[tid] || {}), comment };
+    updateCommentBtn(tid);
+    document.getElementById('saveStatus').textContent =
+      '已自動存檔 ' + new Date().toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch(e) {
+    document.getElementById('saveStatus').textContent = '儲存失敗，請確認網路';
+  }
+}
+
+async function saveRow(tid) {
+  const v = {};
+  FIELDS.forEach(f => {
+    const n = parseInt(inp(f, tid)?.value);
+    v[f] = isNaN(n) ? null : n;
+  });
+  if (FIELDS.every(f => v[f] === null)) return;
+
+  const res   = calcRow(tid);
+  const docId = `${evaluator}_${tid}`;
+  const data  = {
+    evaluatorName: evaluator,
+    teamId: tid,
+    ...v,
+    ...(res || {}),
+    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  document.getElementById('saveStatus').textContent = '儲存中…';
+  try {
+    await db.collection('scores').doc(docId).set(data, { merge: true });
+    saved[tid] = data;
+    document.getElementById('saveStatus').textContent =
+      '已自動存檔 ' + new Date().toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch(e) {
+    document.getElementById('saveStatus').textContent = '儲存失敗，請確認網路';
+  }
+}
+</script>
+</body>
+</html>

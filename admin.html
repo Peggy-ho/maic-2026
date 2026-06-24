@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAIC 2026 決賽 — 管理後台</title>
+<style>
+:root { --blue:#007AFF; --green:#34C759; --red:#FF3B30; --gray:#8E8E93; --light:#F2F2F7; --border:#D1D1D6; --text:#1C1C1E; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,sans-serif; background:var(--light); color:var(--text); font-size:14px; }
+
+header { background:var(--blue); color:white; padding:16px 20px; }
+header h1 { font-size:20px; font-weight:800; }
+header p { font-size:13px; opacity:.8; margin-top:2px; }
+
+.tabs { display:flex; background:white; border-bottom:1px solid var(--border); }
+.tab { flex:1; padding:12px; text-align:center; font-size:14px; font-weight:600; cursor:pointer; color:var(--gray); border-bottom:3px solid transparent; }
+.tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+.panel { display:none; padding:16px; }
+.panel.active { display:block; }
+
+/* Cards */
+.card { background:white; border-radius:12px; padding:16px; margin-bottom:16px; }
+.card h2 { font-size:16px; font-weight:700; margin-bottom:12px; }
+
+/* Form rows */
+.row { display:flex; gap:8px; margin-bottom:10px; }
+.row input, .row textarea { flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; outline:none; font-family:inherit; }
+.row input:focus, .row textarea:focus { border-color:var(--blue); }
+.row textarea { resize:vertical; min-height:120px; }
+.btn { padding:10px 16px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.btn-blue { background:var(--blue); color:white; }
+.btn-red  { background:var(--red);  color:white; }
+.btn-gray { background:var(--light); color:var(--text); }
+.btn-green { background:var(--green); color:white; }
+.btn:hover { opacity:.88; }
+
+/* Lists */
+.list-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--light); }
+.list-item:last-child { border-bottom:none; }
+.list-label { font-size:14px; }
+.list-sub { font-size:12px; color:var(--gray); }
+
+/* Rankings table */
+table { width:100%; border-collapse:collapse; font-size:15px; }
+th { background:var(--light); padding:11px 14px; text-align:left; font-size:13px; font-weight:700; color:var(--gray); }
+td { padding:11px 14px; border-bottom:1px solid var(--light); }
+tr:last-child td { border-bottom:none; }
+.rank-num { font-weight:800; font-size:18px; }
+.badge { font-size:13px; padding:2px 8px; border-radius:10px; font-weight:600; }
+.badge-gold   { background:#FEF3C7; color:#92400E; }
+.badge-silver { background:#F3F4F6; color:#374151; }
+.badge-bronze { background:#FEE2E2; color:#991B1B; }
+
+/* Progress matrix */
+.matrix { overflow-x:auto; }
+.matrix table th, .matrix table td { padding:8px 12px; font-size:12px; }
+.matrix table th:first-child, .matrix table td:first-child { width:160px; min-width:160px; }
+.matrix table td:first-child .team-name { font-weight:700; font-size:13px; }
+.matrix table td:first-child .app-name  { font-size:11px; color:var(--gray); margin-top:2px; }
+.cell-done { background:#D1FAE5; color:#065F46; text-align:center; font-weight:700; border-radius:4px; }
+.cell-partial { background:#FEF3C7; color:#92400E; text-align:center; border-radius:4px; }
+.cell-empty { background:var(--light); color:var(--gray); text-align:center; border-radius:4px; }
+
+.danger-zone { border:1.5px solid var(--red); border-radius:12px; padding:16px; }
+.danger-zone h2 { color:var(--red); margin-bottom:12px; }
+
+/* Rankings */
+#rankTable tbody tr { cursor:pointer; transition:background .1s; }
+#rankTable tbody tr:hover { background:#F0F0F5; }
+#rankTable tbody tr.finalist { background:#FFFBEB; }
+#rankTable tbody tr.finalist:hover { background:#FEF9E0; }
+.finalist-btn { padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid transparent; white-space:nowrap; }
+.finalist-btn.on  { background:#FEF3C7; color:#92400E; border-color:#FDE68A; }
+.finalist-btn.off { background:var(--light); color:var(--gray); border-color:var(--border); }
+
+/* Detail modal */
+#detailModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; overflow-y:auto; padding:24px; }
+.detail-box { background:white; border-radius:16px; padding:28px; max-width:1100px; margin:40px auto; }
+.detail-box h2 { font-size:22px; font-weight:800; margin-bottom:4px; }
+.detail-box .sub { font-size:15px; color:var(--gray); margin-bottom:20px; }
+.detail-scroll { overflow-x:auto; }
+.detail-table { border-collapse:collapse; font-size:14px; width:max-content; min-width:100%; }
+.detail-table th { background:var(--light); padding:10px 14px; text-align:center; font-weight:700; white-space:nowrap; }
+.detail-table td { padding:10px 14px; border-bottom:1px solid var(--light); text-align:center; vertical-align:top; }
+.detail-table tr:last-child td { border-bottom:none; font-weight:800; background:#F8F8FA; }
+.td-comment { text-align:left; max-width:200px; font-size:13px; color:var(--gray); white-space:pre-wrap; word-break:break-all; }
+.td-total { font-weight:800; font-size:16px; color:var(--blue); }
+
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1C1C1E; color:white; padding:10px 20px; border-radius:20px; font-size:13px; font-weight:600; display:none; z-index:999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MAIC 2026 決賽</h1>
+  <p>管理後台</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('evaluators')">評審</div>
+  <div class="tab" onclick="switchTab('teams')">隊伍</div>
+  <div class="tab" onclick="switchTab('rankings')">排名</div>
+  <div class="tab" onclick="switchTab('progress')">進度</div>
+  <div class="tab" onclick="switchTab('settings')">設定</div>
+</div>
+
+<!-- ── 評審 ── -->
+<div id="tab-evaluators" class="panel active">
+  <div class="card">
+    <h2>新增評審</h2>
+    <div class="row">
+      <input id="newEval" type="text" placeholder="評審姓名">
+      <button class="btn btn-blue" onclick="addEvaluator()">新增</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>評審名單</h2>
+    <div id="evalList"><p style="color:var(--gray)">載入中...</p></div>
+  </div>
+</div>
+
+<!-- ── 隊伍 ── -->
+<div id="tab-teams" class="panel">
+  <div class="card">
+    <h2>匯入隊伍</h2>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:10px">每行一筆，用 | 分隔：<code>代號|隊伍名稱|作品名稱</code></p>
+    <div class="row"><textarea id="teamImport" placeholder="F001|到此一遊|Coastory
+F002|VCStudio|LeLearn
+F003|夜行式|InquMap"></textarea></div>
+    <div class="row">
+      <button class="btn btn-blue" onclick="importTeams()">匯入</button>
+      <button class="btn btn-gray" onclick="clearTeamImport()">清除</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2>隊伍名單 (<span id="teamCount">0</span>)</h2>
+      <button id="saveOrderBtn" class="btn btn-blue" onclick="saveAllOrders()">儲存順序</button>
+    </div>
+    <div id="teamList"><p style="color:var(--gray)">載入中...</p></div>
+  </div>
+</div>
+
+<!-- ── 排名 ── -->
+<div id="tab-rankings" class="panel">
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div>
+      <strong>即時排名</strong>
+      <div style="font-size:12px;color:var(--gray)" id="rankNote">依評審排名加總（越小越前面）</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-gray" onclick="loadRankings()">重新整理</button>
+      <button class="btn btn-green" onclick="exportCSV()">匯出 CSV</button>
+    </div>
+  </div>
+  <div style="overflow-x:auto">
+    <table id="rankTable">
+      <thead><tr>
+        <th>名次</th><th>隊伍名稱</th><th>作品名稱</th>
+        <th>排名加總</th><th>平均總分</th><th>創新/40</th><th>前景/25</th><th>資料/10</th><th>運作/25</th>
+        <th>評審數</th><th>入選</th>
+      </tr></thead>
+      <tbody id="rankBody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px">載入中...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── 進度 ── -->
+<div id="tab-progress" class="panel">
+  <div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+    <strong>評分進度矩陣</strong>
+    <button class="btn btn-gray" onclick="loadProgress()">重新整理</button>
+  </div>
+  <div class="matrix" id="progressMatrix"><p style="color:var(--gray)">載入中...</p></div>
+</div>
+
+<!-- ── 設定 ── -->
+<div id="tab-settings" class="panel">
+  <div class="card danger-zone">
+    <h2>清除資料</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:14px">清除評分記錄，評審名單和隊伍名單保留。</p>
+    <button class="btn btn-red" onclick="clearScores()">清除所有評分記錄</button>
+  </div>
+  <div class="card danger-zone" style="margin-top:16px">
+    <h2>清除隊伍</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:14px">清除所有隊伍，評分記錄也一併清除。</p>
+    <button class="btn btn-red" onclick="clearTeams()">清除隊伍</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-box">
+    <h2 id="detailTitle">—</h2>
+    <div class="sub" id="detailSub">—</div>
+    <div class="detail-scroll" id="detailContent"></div>
+    <button class="btn btn-gray" style="margin-top:16px;width:100%" onclick="closeDetail()">關閉</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDNkqd4BFKzpDd-uL8F_ABKIclWXmhSszw",
+  authDomain: "maic-2026.firebaseapp.com",
+  projectId: "maic-2026",
+  storageBucket: "maic-2026.firebasestorage.app",
+  messagingSenderId: "1081506283826",
+  appId: "1:1081506283826:web:e633ef06fc4dc21a2dd72b"
+});
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const FIELDS = ['design_concept','interface_design','interaction_design','feasibility',
+                'user_need','market_reception','completeness','quality_score',
+                'functionality','smoothness','reliability'];
+
+auth.signInAnonymously().then(() => {
+  watchEvaluators();
+  watchTeams();
+});
+
+// ── Tab ─────────────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['evaluators','teams','rankings','progress','settings'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'rankings') loadRankings();
+  if (name === 'progress') loadProgress();
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────
+
+function toast(msg, ms=2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, ms);
+}
+
+// ── Evaluators ───────────────────────────────────────────────────────────
+
+function watchEvaluators() {
+  db.collection('evaluators').orderBy('name').onSnapshot(snap => {
+    const list = document.getElementById('evalList');
+    if (snap.empty) { list.innerHTML = '<p style="color:var(--gray)">尚無評審</p>'; return; }
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.innerHTML = `<span class="list-label">${doc.data().name}</span>
+        <button class="btn btn-red" onclick="deleteEvaluator('${doc.id}','${doc.data().name}')">刪除</button>`;
+      list.appendChild(row);
+    });
+  });
+}
+
+async function addEvaluator() {
+  const name = document.getElementById('newEval').value.trim();
+  if (!name) return;
+  await db.collection('evaluators').add({ name });
+  document.getElementById('newEval').value = '';
+  loadEvaluators();
+  toast(`已新增 ${name}`);
+}
+
+async function deleteEvaluator(id, name) {
+  if (!confirm(`確定刪除評審「${name}」？`)) return;
+  await db.collection('evaluators').doc(id).delete();
+  loadEvaluators();
+  toast(`已刪除 ${name}`);
+}
+
+// ── Teams ────────────────────────────────────────────────────────────────
+
+let _teamDocs = [];
+
+function watchTeams() {
+  db.collection('teams').orderBy('teamId').onSnapshot(snap => {
+    document.getElementById('teamCount').textContent = snap.size;
+    _teamDocs = [];
+    const list = document.getElementById('teamList');
+    if (snap.empty) { list.innerHTML = '<p style="color:var(--gray)">尚無隊伍</p>'; return; }
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      _teamDocs.push({ docId: doc.id, data: d });
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.min = '1'; inp.placeholder = '順序';
+      inp.value = d.order != null ? d.order : '';
+      inp.dataset.docid = doc.id;
+      inp.className = 'order-inp';
+      inp.style.cssText = 'width:56px;padding:6px;border:1.5px solid var(--border);border-radius:8px;text-align:center;font-size:15px;font-weight:700;outline:none';
+      row.innerHTML = `<div style="display:flex;align-items:center;gap:12px">
+          <div id="inp_slot_${doc.id}"></div>
+          <div>
+            <div class="list-label">${d.teamName || d.teamId}</div>
+            <div class="list-sub">${d.appName || ''}</div>
+          </div>
+        </div>
+        <button class="btn btn-red" onclick="deleteTeam('${doc.id}','${d.teamId}')">刪除</button>`;
+      list.appendChild(row);
+      document.getElementById(`inp_slot_${doc.id}`).appendChild(inp);
+    });
+  });
+}
+
+async function saveAllOrders() {
+  const inputs = document.querySelectorAll('.order-inp');
+  if (!inputs.length) return;
+  const btn = document.getElementById('saveOrderBtn');
+  btn.disabled = true; btn.textContent = '儲存中…';
+  try {
+    const batch = db.batch();
+    inputs.forEach(inp => {
+      const order = parseInt(inp.value);
+      batch.update(db.collection('teams').doc(inp.dataset.docid), {
+        order: isNaN(order) ? null : order
+      });
+    });
+    await batch.commit();
+    toast('展演順序已儲存');
+  } catch(e) {
+    toast('儲存失敗：' + e.message, 4000);
+  }
+  btn.disabled = false; btn.textContent = '儲存順序';
+}
+
+async function importTeams() {
+  const raw = document.getElementById('teamImport').value.trim();
+  if (!raw) return;
+  let ok = 0, skip = 0;
+  const batch = db.batch();
+  for (const line of raw.split('\n')) {
+    const parts = line.trim().split('|');
+    if (!parts[0]) continue;
+    const teamId   = parts[0].trim().toUpperCase();
+    const teamName = (parts[1] || '').trim();
+    const appName  = (parts[2] || '').trim();
+    const ref = db.collection('teams').doc(teamId);
+    const existing = await ref.get();
+    if (existing.exists) { batch.update(ref, { teamName, appName }); skip++; }
+    else { batch.set(ref, { teamId, teamName, appName }); ok++; }
+  }
+  await batch.commit();
+  loadTeams();
+  toast(`匯入完成：新增 ${ok}，更新 ${skip}`);
+}
+
+function clearTeamImport() { document.getElementById('teamImport').value = ''; }
+
+async function deleteTeam(id, teamId) {
+  if (!confirm(`確定刪除隊伍「${teamId}」？`)) return;
+  await db.collection('teams').doc(id).delete();
+  loadTeams();
+  toast(`已刪除 ${teamId}`);
+}
+
+// ── Rankings ─────────────────────────────────────────────────────────────
+
+async function loadRankings() {
+  const [tSnap, sSnap] = await Promise.all([
+    db.collection('teams').orderBy('teamId').get(),
+    db.collection('scores').get()
+  ]);
+
+  const teams = {};
+  tSnap.forEach(d => { teams[d.data().teamId] = d.data(); });
+
+  // Group scores by team
+  const teamScores = {};
+  sSnap.forEach(d => {
+    const s = d.data();
+    if (!teamScores[s.teamId]) teamScores[s.teamId] = [];
+    teamScores[s.teamId].push(s);
+  });
+
+  // Per-evaluator ranking
+  const evalTotals = {};
+  sSnap.forEach(d => {
+    const s = d.data();
+    if (!evalTotals[s.evaluatorName]) evalTotals[s.evaluatorName] = [];
+    evalTotals[s.evaluatorName].push({ teamId: s.teamId, total: s.total || 0 });
+  });
+
+  const evalRanks = {};
+  for (const [ev, arr] of Object.entries(evalTotals)) {
+    arr.sort((a,b) => b.total - a.total);
+    arr.forEach((item, i) => {
+      if (!evalRanks[item.teamId]) evalRanks[item.teamId] = [];
+      evalRanks[item.teamId].push(i + 1);
+    });
+  }
+
+  // Aggregate per team
+  const rows = Object.keys(teams).map(tid => {
+    const scores = teamScores[tid] || [];
+    const ranks  = evalRanks[tid] || [];
+    const rankSum = ranks.reduce((a,b) => a+b, 0);
+    const avg = f => scores.length ? scores.reduce((a,s) => a + (s[f]||0), 0) / scores.length : null;
+    return {
+      teamId:    tid,
+      teamName:  teams[tid].teamName || '',
+      appName:   teams[tid].appName  || '',
+      isFinalist: teams[tid].isFinalist || false,
+      rankSum:   ranks.length ? rankSum : Infinity,
+      evalCount: scores.length,
+      avgTotal:  avg('total'),
+      avgInnov:  avg('innov_score'),
+      avgProsp:  avg('prosp_score'),
+      avgQual:   avg('qual_score'),
+      avgOper:   avg('oper_score'),
+      scores,
+    };
+  });
+
+  rows.sort((a,b) => a.rankSum - b.rankSum || (b.avgTotal||0) - (a.avgTotal||0));
+
+  // Auto-select top 3 if no finalist has been set yet
+  const anyFinalist = rows.some(r => r.isFinalist);
+  if (!anyFinalist && rows.some(r => r.evalCount > 0)) {
+    const batch = db.batch();
+    rows.slice(0, 3).forEach(r => {
+      r.isFinalist = true;
+      batch.update(db.collection('teams').doc(r.teamId), { isFinalist: true });
+    });
+    await batch.commit();
+    toast('已自動預選前 3 名');
+  }
+
+  window._rankRows = rows;
+  window._teamScores = teamScores;
+
+  const finalistCount = rows.filter(r => r.isFinalist).length;
+  document.getElementById('rankNote').textContent =
+    `依評審排名加總（越小越前面）　｜　已入選：${finalistCount} 隊`;
+
+  const tbody = document.getElementById('rankBody');
+  tbody.innerHTML = '';
+  rows.forEach((r, i) => {
+    const rank  = i + 1;
+    const medal = rank===1 ? '<span class="badge badge-gold">🥇</span>' :
+                  rank===2 ? '<span class="badge badge-silver">🥈</span>' :
+                  rank===3 ? '<span class="badge badge-bronze">🥉</span>' : '';
+    const tr = document.createElement('tr');
+    if (r.isFinalist) tr.classList.add('finalist');
+    tr.innerHTML = `
+      <td><span class="rank-num">${rank}</span> ${medal}</td>
+      <td>${r.teamName}</td>
+      <td>${r.appName}</td>
+      <td>${r.rankSum === Infinity ? '—' : r.rankSum}</td>
+      <td>${r.avgTotal !== null ? r.avgTotal.toFixed(2) : '—'}</td>
+      <td>${r.avgInnov !== null ? r.avgInnov.toFixed(2) : '—'}</td>
+      <td>${r.avgProsp !== null ? r.avgProsp.toFixed(2) : '—'}</td>
+      <td>${r.avgQual  !== null ? r.avgQual.toFixed(2)  : '—'}</td>
+      <td>${r.avgOper  !== null ? r.avgOper.toFixed(2)  : '—'}</td>
+      <td>${r.evalCount}</td>
+      <td><button class="finalist-btn ${r.isFinalist ? 'on' : 'off'}"
+        onclick="event.stopPropagation();toggleFinalist('${r.teamId}', ${r.isFinalist})"
+        >${r.isFinalist ? '✓ 入選' : '入選'}</button></td>`;
+    tr.addEventListener('click', () => showTeamDetail(r.teamId));
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Team Detail ──────────────────────────────────────────────────────────
+
+const FIELD_LABELS = {
+  design_concept:'設計理念', interface_design:'介面設計',
+  interaction_design:'交互設計', feasibility:'可行性',
+  user_need:'使用者需求', market_reception:'市場歡迎',
+  completeness:'資料齊全', quality_score:'資料品質',
+  functionality:'功能性', smoothness:'流暢性', reliability:'可靠性'
+};
+
+function showTeamDetail(tid) {
+  const row = (window._rankRows || []).find(r => r.teamId === tid);
+  if (!row) return;
+  document.getElementById('detailTitle').textContent = row.teamName;
+  document.getElementById('detailSub').textContent   = row.appName;
+
+  const scores = row.scores;
+  if (!scores.length) {
+    document.getElementById('detailContent').innerHTML = '<p style="color:var(--gray);padding:12px 0">尚無評分資料</p>';
+    document.getElementById('detailModal').style.display = 'block';
+    return;
+  }
+
+  const fieldKeys = Object.keys(FIELD_LABELS);
+  let html = '<table class="detail-table"><thead><tr><th>評審</th>';
+  fieldKeys.forEach(f => { html += `<th>${FIELD_LABELS[f]}</th>`; });
+  html += '<th>總分</th><th>評語</th></tr></thead><tbody>';
+
+  scores.forEach(s => {
+    html += `<tr><td style="font-weight:700;white-space:nowrap">${s.evaluatorName}</td>`;
+    fieldKeys.forEach(f => { html += `<td>${s[f] != null ? s[f] : '—'}</td>`; });
+    html += `<td class="td-total">${s.total != null ? s.total.toFixed(2) : '—'}</td>`;
+    html += `<td class="td-comment">${s.comment || ''}</td></tr>`;
+  });
+
+  // Average row
+  const avg = f => scores.filter(s => s[f] != null).length
+    ? (scores.reduce((a,s) => a + (s[f]||0), 0) / scores.length).toFixed(2) : '—';
+  html += `<tr><td>平均</td>`;
+  fieldKeys.forEach(f => { html += `<td>${avg(f)}</td>`; });
+  const avgTotal = scores.filter(s => s.total != null).length
+    ? (scores.reduce((a,s) => a + (s.total||0), 0) / scores.length).toFixed(2) : '—';
+  html += `<td class="td-total">${avgTotal}</td><td></td></tr>`;
+
+  html += '</tbody></table>';
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailModal').style.display = 'block';
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').style.display = 'none';
+}
+
+async function toggleFinalist(tid, current) {
+  const next = !current;
+  try {
+    await db.collection('teams').doc(tid).update({ isFinalist: next });
+  } catch(e) {
+    toast('更新失敗：' + e.message, 4000);
+    return;
+  }
+
+  // Update in-memory row
+  const row = (window._rankRows || []).find(r => r.teamId === tid);
+  if (row) row.isFinalist = next;
+
+  // Update that row's DOM
+  const btn = document.querySelector(`button[onclick*="toggleFinalist('${tid}'"]`);
+  if (btn) {
+    btn.className = `finalist-btn ${next ? 'on' : 'off'}`;
+    btn.textContent = next ? '✓ 入選' : '入選';
+    btn.setAttribute('onclick', `event.stopPropagation();toggleFinalist('${tid}', ${next})`);
+    const tr = btn.closest('tr');
+    if (tr) tr.classList.toggle('finalist', next);
+  }
+
+  // Update count
+  const count = (window._rankRows || []).filter(r => r.isFinalist).length;
+  document.getElementById('rankNote').textContent =
+    `依評審排名加總（越小越前面）　｜　已入選：${count} 隊`;
+
+  toast(next ? '已標記入選' : '已取消入選');
+}
+
+// ── Progress ─────────────────────────────────────────────────────────────
+
+async function loadProgress() {
+  const [tSnap, eSnap, sSnap] = await Promise.all([
+    db.collection('teams').orderBy('teamId').get(),
+    db.collection('evaluators').orderBy('name').get(),
+    db.collection('scores').get()
+  ]);
+
+  const teams = tSnap.docs.map(d => d.data());
+  teams.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+  const evals = eSnap.docs.map(d => d.data().name);
+  const done  = {};
+  sSnap.forEach(d => {
+    const s = d.data();
+    const complete = FIELDS.every(f => s[f] != null);
+    done[`${s.evaluatorName}_${s.teamId}`] = complete ? 'done' : 'partial';
+  });
+
+  const container = document.getElementById('progressMatrix');
+  let html = '<table><thead><tr><th>隊伍名稱</th>';
+  evals.forEach(e => { html += `<th>${e}</th>`; });
+  html += '</tr></thead><tbody>';
+  teams.forEach(t => {
+    html += `<tr><td><div class="team-name">${t.teamName}</div><div class="app-name">${t.appName||''}</div></td>`;
+    evals.forEach(ev => {
+      const key = `${ev}_${t.teamId}`;
+      const st  = done[key];
+      html += `<td><div class="${st === 'done' ? 'cell-done' : st === 'partial' ? 'cell-partial' : 'cell-empty'}">${st === 'done' ? '✓' : st === 'partial' ? '…' : '—'}</div></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ── Export ────────────────────────────────────────────────────────────────
+
+function exportCSV() {
+  if (!window._rankRows) { toast('請先載入排名'); return; }
+  const rows = window._rankRows;
+  const header = ['名次','隊伍名稱','作品名稱','排名加總','平均總分','創新/40','前景/25','資料/10','運作/25','評審數'];
+  const lines  = [header.join(',')];
+  rows.forEach((r, i) => {
+    lines.push([
+      i+1, `"${r.teamName}"`, `"${r.appName}"`,
+      r.rankSum === Infinity ? '' : r.rankSum,
+      r.avgTotal !== null ? r.avgTotal.toFixed(2) : '',
+      r.avgInnov !== null ? r.avgInnov.toFixed(2) : '',
+      r.avgProsp !== null ? r.avgProsp.toFixed(2) : '',
+      r.avgQual  !== null ? r.avgQual.toFixed(2)  : '',
+      r.avgOper  !== null ? r.avgOper.toFixed(2)  : '',
+      r.evalCount
+    ].join(','));
+  });
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `maic_決賽排名_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── Danger ────────────────────────────────────────────────────────────────
+
+async function clearScores() {
+  if (!confirm('確定清除所有評分記錄？此操作不可還原。')) return;
+  const snap = await db.collection('scores').get();
+  const batch = db.batch();
+  snap.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  toast('評分記錄已清除');
+}
+
+async function clearTeams() {
+  if (!confirm('確定清除所有隊伍和評分記錄？')) return;
+  const [tSnap, sSnap] = await Promise.all([
+    db.collection('teams').get(),
+    db.collection('scores').get()
+  ]);
+  const batch = db.batch();
+  tSnap.forEach(d => batch.delete(d.ref));
+  sSnap.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  loadTeams();
+  toast('隊伍和評分記錄已清除');
+}
+</script>
+</body>
+</html>
