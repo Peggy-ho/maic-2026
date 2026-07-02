@@ -503,13 +503,12 @@ function showTeamDetail(tid) {
   const fieldKeys = Object.keys(FIELD_LABELS);
   let html = '<table class="detail-table"><thead><tr><th>評審</th>';
   fieldKeys.forEach(f => { html += `<th>${FIELD_LABELS[f]}</th>`; });
-  html += '<th>總分</th><th>評語</th></tr></thead><tbody>';
+  html += '<th>總分</th></tr></thead><tbody>';
 
   scores.forEach(s => {
     html += `<tr><td style="font-weight:700;white-space:nowrap">${s.evaluatorName}</td>`;
     fieldKeys.forEach(f => { html += `<td>${s[f] != null ? s[f] : '—'}</td>`; });
-    html += `<td class="td-total">${s.total != null ? s.total.toFixed(2) : '—'}</td>`;
-    html += `<td class="td-comment">${s.comment || ''}</td></tr>`;
+    html += `<td class="td-total">${s.total != null ? s.total.toFixed(2) : '—'}</td></tr>`;
   });
 
   // Average row
@@ -519,7 +518,7 @@ function showTeamDetail(tid) {
   fieldKeys.forEach(f => { html += `<td>${avg(f)}</td>`; });
   const avgTotal = scores.filter(s => s.total != null).length
     ? (scores.reduce((a,s) => a + (s.total||0), 0) / scores.length).toFixed(2) : '—';
-  html += `<td class="td-total">${avgTotal}</td><td></td></tr>`;
+  html += `<td class="td-total">${avgTotal}</td></tr>`;
 
   html += '</tbody></table>';
   document.getElementById('detailContent').innerHTML = html;
