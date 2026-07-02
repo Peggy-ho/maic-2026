@@ -396,13 +396,16 @@ async function loadRankings() {
   });
 
   const evalRanks = {};
+  const evalRankMap = {};
   for (const [ev, arr] of Object.entries(evalTotals)) {
     arr.sort((a,b) => b.total - a.total);
     arr.forEach((item, i) => {
       if (!evalRanks[item.teamId]) evalRanks[item.teamId] = [];
       evalRanks[item.teamId].push(i + 1);
+      evalRankMap[`${ev}_${item.teamId}`] = i + 1;
     });
   }
+  window._evalRankMap = evalRankMap;
 
   // Aggregate per team
   const rows = Object.keys(teams).map(tid => {
@@ -507,14 +510,18 @@ function showTeamDetail(tid) {
   html += '<th colspan="2" style="background:#DCFCE7;color:#166534">前景/25</th>';
   html += '<th colspan="2" style="background:#FEF3C7;color:#92400E">資料/10</th>';
   html += '<th colspan="3" style="background:#FFE4E6;color:#9F1239">運作/25</th>';
-  html += '<th rowspan="2">總分</th></tr><tr>';
+  html += '<th rowspan="2">總分</th>';
+  html += '<th rowspan="2">排名<br><span style="font-weight:400;font-size:11px;color:var(--gray)">評分中會變動</span></th></tr><tr>';
   fieldKeys.forEach(f => { html += `<th>${FIELD_LABELS[f]}</th>`; });
   html += '</tr></thead><tbody>';
 
+  const rankMap = window._evalRankMap || {};
   scores.forEach(s => {
+    const rankVal = rankMap[`${s.evaluatorName}_${tid}`];
     html += `<tr><td style="font-weight:700;white-space:nowrap">${s.evaluatorName}</td>`;
     fieldKeys.forEach(f => { html += `<td>${s[f] != null ? s[f] : '—'}</td>`; });
-    html += `<td class="td-total">${s.total != null ? s.total.toFixed(2) : '—'}</td></tr>`;
+    html += `<td class="td-total">${s.total != null ? s.total.toFixed(2) : '—'}</td>`;
+    html += `<td style="color:var(--gray)">${rankVal != null ? rankVal : '—'}</td></tr>`;
   });
 
   // Average row
@@ -524,7 +531,9 @@ function showTeamDetail(tid) {
   fieldKeys.forEach(f => { html += `<td>${avg(f)}</td>`; });
   const avgTotal = scores.filter(s => s.total != null).length
     ? (scores.reduce((a,s) => a + (s.total||0), 0) / scores.length).toFixed(2) : '—';
-  html += `<td class="td-total">${avgTotal}</td></tr>`;
+  const teamRanks = scores.map(s => rankMap[`${s.evaluatorName}_${tid}`]).filter(r => r != null);
+  const avgRank = teamRanks.length ? (teamRanks.reduce((a,b) => a+b, 0) / teamRanks.length).toFixed(1) : '—';
+  html += `<td class="td-total">${avgTotal}</td><td style="color:var(--gray)">${avgRank}</td></tr>`;
 
   html += '</tbody></table>';
   document.getElementById('detailContent').innerHTML = html;
