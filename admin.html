@@ -372,9 +372,10 @@ async function loadRankings() {
   const [tSnap, sSnap, eSnap] = await Promise.all([
     db.collection('teams').orderBy('teamId').get(),
     db.collection('scores').get(),
-    db.collection('evaluators').get()
+    db.collection('evaluators').orderBy('name').get()
   ]);
   const evaluatorCount = eSnap.size;
+  window._evaluatorOrder = eSnap.docs.map(d => d.data().name);
 
   const teams = {};
   tSnap.forEach(d => { teams[d.data().teamId] = d.data(); });
@@ -496,7 +497,8 @@ function showTeamDetail(tid) {
   document.getElementById('detailTitle').textContent = row.teamName;
   document.getElementById('detailSub').textContent   = row.appName;
 
-  const scores = row.scores;
+  const order = window._evaluatorOrder || [];
+  const scores = [...row.scores].sort((a,b) => order.indexOf(a.evaluatorName) - order.indexOf(b.evaluatorName));
   if (!scores.length) {
     document.getElementById('detailContent').innerHTML = '<p style="color:var(--gray);padding:12px 0">尚無評分資料</p>';
     document.getElementById('detailModal').style.display = 'block';
