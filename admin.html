@@ -158,11 +158,11 @@ F003|夜行式|InquMap"></textarea></div>
   <div style="overflow-x:auto">
     <table id="rankTable">
       <thead><tr>
-        <th>名次</th><th>隊伍名稱</th><th>作品名稱</th>
+        <th>名次</th><th>隊伍名稱</th><th>作品名稱</th><th>展演順序</th>
         <th>排名加總</th><th>平均總分</th><th>創新/40</th><th>前景/25</th><th>資料/10</th><th>運作/25</th>
         <th>評審數</th><th>入選</th>
       </tr></thead>
-      <tbody id="rankBody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px">載入中...</td></tr></tbody>
+      <tbody id="rankBody"><tr><td colspan="12" style="text-align:center;color:var(--gray);padding:20px">載入中...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -418,6 +418,7 @@ async function loadRankings() {
       teamId:    tid,
       teamName:  teams[tid].teamName || '',
       appName:   teams[tid].appName  || '',
+      order:     teams[tid].order != null ? teams[tid].order : null,
       isFinalist: teams[tid].isFinalist || false,
       rankSum:   ranks.length ? rankSum : Infinity,
       evalCount: scores.length,
@@ -466,6 +467,7 @@ async function loadRankings() {
       <td><span class="rank-num">${rank}</span> ${medal}</td>
       <td>${r.teamName}</td>
       <td>${r.appName}</td>
+      <td>${r.order != null ? r.order : '—'}</td>
       <td>${r.rankSum === Infinity ? '—' : r.rankSum}</td>
       <td>${r.avgTotal !== null ? r.avgTotal.toFixed(2) : '—'}</td>
       <td>${r.avgInnov !== null ? r.avgInnov.toFixed(2) : '—'}</td>
