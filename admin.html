@@ -531,9 +531,7 @@ function showTeamDetail(tid) {
   fieldKeys.forEach(f => { html += `<td>${avg(f)}</td>`; });
   const avgTotal = scores.filter(s => s.total != null).length
     ? (scores.reduce((a,s) => a + (s.total||0), 0) / scores.length).toFixed(2) : '—';
-  const teamRanks = scores.map(s => rankMap[`${s.evaluatorName}_${tid}`]).filter(r => r != null);
-  const avgRank = teamRanks.length ? (teamRanks.reduce((a,b) => a+b, 0) / teamRanks.length).toFixed(1) : '—';
-  html += `<td class="td-total">${avgTotal}</td><td style="color:var(--gray)">${avgRank}</td></tr>`;
+  html += `<td class="td-total">${avgTotal}</td><td style="color:var(--gray)">—</td></tr>`;
 
   html += '</tbody></table>';
   document.getElementById('detailContent').innerHTML = html;
