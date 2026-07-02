@@ -369,10 +369,12 @@ async function deleteTeam(id, teamId) {
 // ── Rankings ─────────────────────────────────────────────────────────────
 
 async function loadRankings() {
-  const [tSnap, sSnap] = await Promise.all([
+  const [tSnap, sSnap, eSnap] = await Promise.all([
     db.collection('teams').orderBy('teamId').get(),
-    db.collection('scores').get()
+    db.collection('scores').get(),
+    db.collection('evaluators').get()
   ]);
+  const evaluatorCount = eSnap.size;
 
   const teams = {};
   tSnap.forEach(d => { teams[d.data().teamId] = d.data(); });
@@ -426,16 +428,18 @@ async function loadRankings() {
 
   rows.sort((a,b) => a.rankSum - b.rankSum || (b.avgTotal||0) - (a.avgTotal||0));
 
-  // Auto-select top 3 if no finalist has been set yet
+  // Auto-select top 3 once every team has been scored by every evaluator
   const anyFinalist = rows.some(r => r.isFinalist);
-  if (!anyFinalist && rows.some(r => r.evalCount > 0)) {
+  const allScored = evaluatorCount > 0 && rows.length > 0 &&
+    rows.every(r => r.evalCount >= evaluatorCount);
+  if (!anyFinalist && allScored) {
     const batch = db.batch();
     rows.slice(0, 3).forEach(r => {
       r.isFinalist = true;
       batch.update(db.collection('teams').doc(r.teamId), { isFinalist: true });
     });
     await batch.commit();
-    toast('已自動預選前 3 名');
+    toast('全部評審已完成評分，已自動預選前 3 名');
   }
 
   window._rankRows = rows;
